@@ -6,6 +6,13 @@ interface IFlusher {
 
 contract Deployer {
 
+  event LogNewFlusher(
+    address indexed owner,
+    address proxy,
+    address indexed logic,
+    address indexed token
+  );
+
   /**
     * @dev deploy create2 + minimal proxy
     * @param owner owner address used for salt
@@ -30,6 +37,8 @@ contract Deployer {
         proxy := create2(0, clone, 0x37, salt)
     }
     IFlusher(proxy).init(owner, token);
+
+    emit LogNewFlusher(owner, proxy, logic, token);
   }
 
   /**
