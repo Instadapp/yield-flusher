@@ -2,6 +2,8 @@
 // switch() => to ON/OFF some uint variable which will set the current time or blocknumber
 // cast() => backdoor function with a requirement - (current - stored) > 90 days
 
+// TODO: use safeERC20 logics here
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
