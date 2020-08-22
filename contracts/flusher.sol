@@ -1,3 +1,7 @@
+// TODO: backdoor functions, specs below:
+// switch() => to ON/OFF some uint variable which will set the current time or blocknumber
+// cast() => backdoor function with a requirement - (current - stored) > 90 days
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -8,7 +12,6 @@ interface IERC20 {
 }
 
 interface YieldPool {
-  function baseToken() external view returns (address);
   function balanceOf(address) external view returns (uint);
   function deposit(uint) external returns (uint);
   function withdraw(uint, address) external returns (uint);
@@ -22,6 +25,7 @@ contract Flusher {
 
   address payable public owner;
 
+  // TODO: we need to pass token address instead of pooltoken address
   function deposit(address poolToken) public {
     require(address(poolToken) != address(0), "invalid-token");
 
@@ -35,10 +39,10 @@ contract Flusher {
         tokenContract.approve(address(poolContract), uint(-1));
       poolContract.deposit(tokenContract.balanceOf(address(this)));
     }
-
   }
 
-  function withdraw(uint amount, address poolToken) external returns (uint) {
+  // TODO: we need to pass token address instead of pooltoken address
+  function withdraw(address poolToken, uint amount) external returns (uint) {
 
     ManagerInterface IManager = ManagerInterface(0x0000000000000000000000000000000000000000);
     require(IManager.managers(msg.sender), "not-manager");
@@ -50,9 +54,9 @@ contract Flusher {
 
   }
 
-  function init(address _owner, address _token) external {
-    owner = payable(_owner);
-    deposit(_token);
+  function init(address newOwner, address token) external {
+    owner = payable(newOwner);
+    deposit(token);
   }
 
 }

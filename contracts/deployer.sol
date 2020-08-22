@@ -8,13 +8,13 @@ contract Deployer {
 
   /**
     * @dev deploy create2 + minimal proxy
-    * @param _owner owner address.
-    * @param _target flusher contract address.
-    * @param _token token address.
+    * @param owner owner address used for salt
+    * @param logic flusher contract address
+    * @param token token address
   */
-  function deployFlusher(address _owner, address _target, address _token) public returns (address proxy) {
-    bytes32 salt = keccak256(abi.encodePacked(_owner));
-    bytes20 targetBytes = bytes20(_target);
+  function deploy(address owner, address logic, address token) public returns (address proxy) {
+    bytes32 salt = keccak256(abi.encodePacked(owner));
+    bytes20 targetBytes = bytes20(logic);
     // solium-disable-next-line security/no-inline-assembly
     assembly {
         let clone := mload(0x40)
@@ -29,17 +29,17 @@ contract Deployer {
         )
         proxy := create2(0, clone, 0x37, salt)
     }
-    IFlusher(proxy).init(_owner, _token);
+    IFlusher(proxy).init(owner, token);
   }
 
   /**
-    * @dev Compute Create2 + Minimal Proxy address
-    * @param _owner owner address.
-    * @param _target flusher contract address.
+    * @dev compute create2 + minimal proxy address
+    * @param owner owner address used for salt
+    * @param logic flusher contract address
   */
-  function getDeploymentAddress(address _owner, address _target) public view returns (address) {
-    bytes32 codeHash = keccak256(getMinimalProxyCreationCode(_target));
-    bytes32 salt = keccak256(abi.encodePacked(_owner));
+  function getAddress(address owner, address logic) public view returns (address) {
+    bytes32 codeHash = keccak256(getCreationCode(logic));
+    bytes32 salt = keccak256(abi.encodePacked(owner));
     bytes32 rawAddress = keccak256(
       abi.encodePacked(
         bytes1(0xff),
@@ -50,9 +50,9 @@ contract Deployer {
       return address(bytes20(rawAddress << 96));
   }
   
-  function getMinimalProxyCreationCode(address _target) public pure returns (bytes memory) {
+  function getCreationCode(address logic) public pure returns (bytes memory) {
     bytes20 a = bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73);
-    bytes20 b = bytes20(_target);
+    bytes20 b = bytes20(logic);
     bytes15 c = bytes15(0x5af43d82803e903d91602b57fd5bf3);
     return abi.encodePacked(a, b, c);
   }
