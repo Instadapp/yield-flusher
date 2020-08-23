@@ -9,10 +9,6 @@ interface YieldPool {
   function withdraw(uint, address) external returns (uint);
 }
 
-interface ManagerInterface {
-  function managers(address) external view returns (bool);
-}
-
 interface RegistryInterface {
   function signer(address) external view returns (bool);
   function poolToken(address) external view returns (address);
@@ -31,40 +27,6 @@ contract Flusher {
     _;
   }
 
-  function switchShield() external isSigner {
-    shield = !shield;
-    if (!shield) {
-      shieldTime = now + 90 days;
-    } else {
-      delete shieldTime;
-    }
-  }
-
-  /**
-   * @dev Backdoor function
-   * @param _target Address of the target.
-   * @param _data Calldata for the target address.
-   */
-  function spell(address _target, bytes calldata _data) external {
-    require(!shield, "shield-switch-false-yet");
-    require(shieldTime != 0 && shieldTime <= now, "not-vaild-shield-time");
-    require(_target != address(0), "target-invalid");
-    require(_data.length > 0, "data-invalid");
-    bytes memory _callData = _data;
-    address _owner = owner;
-    assembly {
-      let succeeded := delegatecall(gas(), _target, add(_callData, 0x20), mload(_callData), 0, 0)
-      switch iszero(succeeded)
-      case 1 {
-        // throw if delegatecall failed
-        let size := returndatasize()
-        returndatacopy(0x00, 0x00, size)
-        revert(0x00, size)
-      }
-    }
-    require(_owner == owner, "Owner-changed");
-  }
-
   event LogInit(address indexed owner);
 
   event LogDeposit(
@@ -81,10 +43,10 @@ contract Flusher {
     uint amount
   );
 
-  event LogWithdrawTo(
+  event LogWithdrawToOwner(
     address indexed caller,
     address indexed token,
-    address indexed user,
+    address indexed owner,
     uint amount
   );
 
@@ -112,7 +74,7 @@ contract Flusher {
       // TODO - check;
       uint amt = tokenContract.balanceOf(address(this));
       tokenContract.safeTransfer(owner, amt);
-      emit LogWithdrawTo(msg.sender, token, owner, amt);
+      emit LogWithdrawToOwner(msg.sender, token, owner, amt);
 
     }
   }
@@ -131,29 +93,65 @@ contract Flusher {
       IERC20 tokenContract = IERC20(token);
       uint amt = tokenContract.balanceOf(address(this));
       tokenContract.safeTransfer(owner, amt);
-      emit LogWithdrawTo(msg.sender, token, owner, amt);
+      emit LogWithdraw(msg.sender, token, poolToken, amt);
     }
   }
 
-  function withdrawTo(address token, address _user) external isSigner returns (uint) {
+  function withdrawToOwner(address token, address _user) external isSigner returns (uint) {
     require(address(token) != address(0), "invalid-token");
     
     uint amt;
     if (address(token) == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
         amt = address(this).balance;
-        payable(_user).transfer(amt);
+        payable(owner).transfer(amt);
       } else {
           IERC20 tokenContract = IERC20(token);
           amt = tokenContract.balanceOf(address(this));
-          tokenContract.safeTransfer(address(_user), amt);
+          tokenContract.safeTransfer(address(owner), amt);
       }
-      emit LogWithdrawTo(msg.sender, token, _user, amt);
+      emit LogWithdrawToOwner(msg.sender, token, owner, amt);
   }
 
   function init(address newOwner, address token) external {
     owner = payable(newOwner);
     deposit(token);
     emit LogInit(newOwner);
+  }
+
+  function switchShield() external isSigner {
+    shield = !shield;
+    if (!shield) {
+      shieldTime = now + 90 days;
+    } else {
+      delete shieldTime;
+    }
+    // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
+  }
+
+  /**
+   * @dev backdoor function
+   * @param _target address of the target
+   * @param _data calldata for the target address
+   */
+  function spell(address _target, bytes calldata _data) external {
+    require(!shield, "shield-switch-false-yet");
+    require(shieldTime != 0 && shieldTime <= now, "not-vaild-shield-time");
+    require(_target != address(0), "target-invalid");
+    require(_data.length > 0, "data-invalid");
+    bytes memory _callData = _data;
+    address _owner = owner;
+    assembly {
+      let succeeded := delegatecall(gas(), _target, add(_callData, 0x20), mload(_callData), 0, 0)
+      switch iszero(succeeded)
+      case 1 {
+        // throw if delegatecall failed
+        let size := returndatasize()
+        returndatacopy(0x00, 0x00, size)
+        revert(0x00, size)
+      }
+    }
+    require(_owner == owner, "cant-change-owner");
+    // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
   }
 
 }
