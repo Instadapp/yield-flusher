@@ -135,7 +135,7 @@ contract Flusher {
    */
   function spell(address _target, bytes calldata _data) external isChief {
     require(!shield, "shield-access-denied");
-    require(shieldBlockTime != 0 && shieldBlockTime <= block.number, "less-than-ninty-days");
+    require(shieldBlockTime != 0 && shieldBlockTime <= block.number, "more-than-ninty-days");
     require(_target != address(0), "target-invalid");
     require(_data.length > 0, "data-invalid");
     bytes memory _callData = _data;
