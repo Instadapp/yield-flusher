@@ -64,6 +64,7 @@ contract Registry {
     * @param pool pool address
   */
   function addPool(address token, address pool) external isMaster { // TODO: all good?
+    require(token != address(0) && pool != address(0), "address-not-valid");
     poolToken[token] = pool;
     emit LogAddPool(token, pool);
   }
@@ -73,9 +74,11 @@ contract Registry {
     * @param token ERC20 token address
     * @param pool pool address
   */
-  function removePool(address token, address pool) external isMaster { // TODO: all good?
+  function removePool(address token) external isMaster { // TODO: all good?
+    require(token != address(0), "address-not-valid");
+    address poolAddr = poolToken[token];
     delete poolToken[token];
-    emit LogRemovePool(token, pool);
+    emit LogRemovePool(token, poolAddr);
   }
 
   /**
