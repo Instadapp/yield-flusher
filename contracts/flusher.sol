@@ -83,19 +83,13 @@ contract Flusher {
   function withdraw(address token, uint amount) external isSigner returns (uint) {
     require(address(token) != address(0), "invalid-token");
     address poolToken = registry.poolToken(token);
+    require(poolToken != address(0), "invalid-pool");
     
-    if (poolToken != address(0)) {
-      YieldPool poolContract = YieldPool(poolToken);
-      uint poolBalance = poolContract.balanceOf(address(this));
-      if (amount > poolBalance) amount = poolBalance;
-      return poolContract.withdraw(amount, owner);
-    } else {
-      // TODO - check
-      IERC20 tokenContract = IERC20(token);
-      uint amt = tokenContract.balanceOf(address(this));
-      tokenContract.safeTransfer(owner, amt);
-      emit LogWithdraw(msg.sender, token, poolToken, amt); // TODO: why this event is not above statement when "if" is true
-    }
+    YieldPool poolContract = YieldPool(poolToken);
+    uint poolBalance = poolContract.balanceOf(address(this));
+    if (amount > poolBalance) amount = poolBalance;
+    poolContract.withdraw(amount, owner);
+    emit LogWithdraw(msg.sender, token, poolToken, amount);
   }
 
   /**
