@@ -19,9 +19,10 @@ contract Flusher {
   using SafeERC20 for IERC20;
 
   address payable public owner;
-  RegistryInterface public constant registry = RegistryInterface(address(0)); // CHECK
+  RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO - Change while deploying.
   bool public shield;
-  uint256 public shieldTime;
+  uint256 public shieldBlockTime;
+  uint256 internal waitBlockTime = 518400; // 90 days blocktime.
 
   modifier isSigner {
     require(registry.signer(msg.sender), "not-signer");
@@ -78,7 +79,6 @@ contract Flusher {
       }
       emit LogDeposit(msg.sender, token, address(poolContract), amt);
     } else {
-      // TODO - check;
       uint amt = tokenContract.balanceOf(address(this));
       tokenContract.safeTransfer(owner, amt);
       emit LogWithdrawToOwner(msg.sender, token, owner, amt);
@@ -113,8 +113,6 @@ contract Flusher {
     emit LogWithdrawToOwner(msg.sender, token, owner, amount);
   }
 
-  // TODO: looks like it could be runned (lol) multiple times by anyone, right?
-  // maybe a require statement that only deployer can call this function?
   function setBasic(address newOwner, address token) external {
     require(owner == address(0), "already-an-owner");
     owner = payable(newOwner);
@@ -126,12 +124,11 @@ contract Flusher {
     require(registry.chief(msg.sender), "not-chief");
     shield = !shield;
     if (!shield) {
-      shieldTime = now + 90 days; // CHECK - don't use this. now is removed in solidity 0.7.0
+      shieldBlockTime = block.number + waitBlockTime;
     } else {
-      delete shieldTime;
+      delete shieldBlockTime;
     }
     emit LogSwitch(shield);
-    // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
   }
 
   /**
@@ -139,9 +136,9 @@ contract Flusher {
    */
   function spell(address _target, bytes calldata _data) external isChief {
     require(!shield, "shield-access-denied");
-    require(shieldTime != 0 && shieldTime <= now, "less-than-ninty-days");
+    require(shieldBlockTime != 0 && shieldBlockTime <= block.number, "less-than-ninty-days");
     require(_target != address(0), "target-invalid");
-    require(_data.length > 0, "data-invalid"); // TODO: Is "_data" array?
+    require(_data.length > 0, "data-invalid");
     bytes memory _callData = _data;
     address _owner = owner;
     assembly {
