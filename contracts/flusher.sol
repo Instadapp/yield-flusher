@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 interface YieldPool {
   function balanceOf(address) external view returns (uint);
-  function deposit(uint) external returns (uint);
+  function deposit(uint) external payable returns (uint);
   function withdraw(uint, address) external returns (uint);
 }
 
@@ -68,7 +68,7 @@ contract Flusher {
       uint amt;
       if (address(tokenContract) == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
         amt = address(this).balance;
-        payable(poolToken).transfer(amt);
+        poolContract.deposit{value: amt}(amt);
       } else {
         amt = tokenContract.balanceOf(address(this));
         if (tokenContract.allowance(address(this), address(poolContract)) == 0)
@@ -82,21 +82,17 @@ contract Flusher {
       uint amt = tokenContract.balanceOf(address(this));
       tokenContract.safeTransfer(owner, amt);
       emit LogWithdrawToOwner(msg.sender, token, owner, amt);
-
     }
   }
 
   // TODO: the token is underlying token but amount is used as of pool token?
-  function withdraw(address token, uint amount) external isSigner returns (uint) {
+  function withdraw(address token, uint amount) external isSigner returns (uint _amount) {
     require(address(token) != address(0), "invalid-token");
     address poolToken = registry.poolToken(token);
     require(poolToken != address(0), "invalid-pool");
     
-    YieldPool poolContract = YieldPool(poolToken);
-    uint poolBalance = poolContract.balanceOf(address(this));
-    if (amount > poolBalance) amount = poolBalance;
-    poolContract.withdraw(amount, owner);
-    emit LogWithdraw(msg.sender, token, poolToken, amount);
+    _amount = YieldPool(poolToken).withdraw(amount, owner);
+    emit LogWithdraw(msg.sender, token, poolToken, _amount);
   }
 
   /**
@@ -120,6 +116,7 @@ contract Flusher {
   // TODO: looks like it could be runned (lol) multiple times by anyone, right?
   // maybe a require statement that only deployer can call this function?
   function setBasic(address newOwner, address token) external {
+    require(owner == address(0), "already-an-owner");
     owner = payable(newOwner);
     deposit(token);
     emit LogInit(newOwner);
@@ -129,7 +126,7 @@ contract Flusher {
     require(registry.chief(msg.sender), "not-chief");
     shield = !shield;
     if (!shield) {
-      shieldTime = now + 90 days;
+      shieldTime = now + 90 days; // CHECK - don't use this. now is removed in solidity 0.7.0
     } else {
       delete shieldTime;
     }
