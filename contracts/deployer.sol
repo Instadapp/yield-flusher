@@ -1,16 +1,16 @@
 pragma solidity ^0.6.8;
 
-interface IFlusher {
+interface IProxy {
   function setBasic(address, address) external;
 }
 
 contract Deployer {
 
-  event LogNewFlusher(
+  event LogNewProxy(
     address indexed owner,
-    address proxy,
+    address indexed proxy,
     address indexed logic,
-    address indexed token
+    address token
   );
 
   /**
@@ -36,9 +36,8 @@ contract Deployer {
         )
         proxy := create2(0, clone, 0x37, salt)
     }
-    IFlusher(proxy).setBasic(owner, token);
-
-    emit LogNewFlusher(owner, proxy, logic, token);
+    IProxy(proxy).setBasic(owner, token);
+    emit LogNewProxy(owner, proxy, logic, token);
   }
 
   /**

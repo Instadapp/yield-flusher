@@ -16,10 +16,10 @@ interface RegistryInterface {
 }
 
 contract Flusher {
-  using SafeERC20 for IERC20; 
+  using SafeERC20 for IERC20;
 
   address payable public owner;
-  RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO
+  RegistryInterface public constant registry = RegistryInterface(address(0)); // CHECK
   bool public shield;
   uint256 public shieldTime;
 
@@ -28,7 +28,13 @@ contract Flusher {
     _;
   }
 
+  modifier isChief {
+    require(registry.chief(msg.sender), "not-chief");
+    _;
+  }
+
   event LogInit(address indexed owner);
+  event LogSwitch(bool indexed boooool);
 
   event LogDeposit(
     address indexed caller,
@@ -80,6 +86,7 @@ contract Flusher {
     }
   }
 
+  // TODO: the token is underlying token but amount is used as of pool token?
   function withdraw(address token, uint amount) external isSigner returns (uint) {
     require(address(token) != address(0), "invalid-token");
     address poolToken = registry.poolToken(token);
@@ -93,30 +100,32 @@ contract Flusher {
   }
 
   /**
-   * @dev withdraw to owner (rare case, used as backdoor)
+   * @dev withdraw to owner (rare case)
    */
-  function withdrawToOwner(address token) external isSigner returns (uint) {
+  function claim(address token) external isSigner returns (uint) {
     require(address(token) != address(0), "invalid-token");
     
-    uint amt;
+    uint amount;
     if (address(token) == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
-      amt = address(this).balance;
-      payable(owner).transfer(amt);
+      amount = address(this).balance;
+      payable(owner).transfer(amount);
     } else {
       IERC20 tokenContract = IERC20(token);
-      amt = tokenContract.balanceOf(address(this));
-      tokenContract.safeTransfer(address(owner), amt);
+      amount = tokenContract.balanceOf(address(this));
+      tokenContract.safeTransfer(address(owner), amount);
     }
-    emit LogWithdrawToOwner(msg.sender, token, owner, amt);
+    emit LogWithdrawToOwner(msg.sender, token, owner, amount);
   }
 
+  // TODO: looks like it could be runned (lol) multiple times by anyone, right?
+  // maybe a require statement that only deployer can call this function?
   function setBasic(address newOwner, address token) external {
     owner = payable(newOwner);
     deposit(token);
     emit LogInit(newOwner);
   }
 
-  function switchShield() external {
+  function switchShield() external isChief {
     require(registry.chief(msg.sender), "not-chief");
     shield = !shield;
     if (!shield) {
@@ -124,17 +133,18 @@ contract Flusher {
     } else {
       delete shieldTime;
     }
+    emit LogSwitch(shield);
     // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
   }
 
   /**
    * @dev backdoor function
    */
-  function spell(address _target, bytes calldata _data) external {
+  function spell(address _target, bytes calldata _data) external isChief {
     require(!shield, "shield-access-denied");
     require(shieldTime != 0 && shieldTime <= now, "less-than-ninty-days");
     require(_target != address(0), "target-invalid");
-    require(_data.length > 0, "data-invalid"); // TODO: Is the data array?
+    require(_data.length > 0, "data-invalid"); // TODO: Is "_data" array?
     bytes memory _callData = _data;
     address _owner = owner;
     assembly {
@@ -148,7 +158,6 @@ contract Flusher {
       }
     }
     require(_owner == owner, "owner-change-denied");
-    // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
   }
 
 }

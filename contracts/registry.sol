@@ -63,7 +63,7 @@ contract Registry {
     * @param token ERC20 token address
     * @param pool pool address
   */
-  function addPool(address token, address pool) external isMaster {
+  function addPool(address token, address pool) external isMaster { // TODO: all good?
     poolToken[token] = pool;
     emit LogAddPool(token, pool);
   }
@@ -73,20 +73,9 @@ contract Registry {
     * @param token ERC20 token address
     * @param pool pool address
   */
-  function removePool(address token, address pool) external isMaster {
+  function removePool(address token, address pool) external isMaster { // TODO: all good?
     delete poolToken[token];
     emit LogRemovePool(token, pool);
-  }
-
-  /**
-    * @dev Disable Signer.
-    * @param _signer Address of the existing signer.
-  */
-  function disableSigner(address _signer) external isMaster {
-      require(_signer != address(0), "address-not-valid");
-      require(signer[_signer], "signer-already-disabled");
-      delete signer[_signer];
-      emit LogRemoveSigner(_signer);
   }
 
   /**
