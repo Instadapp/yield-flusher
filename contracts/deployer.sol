@@ -1,7 +1,7 @@
 pragma solidity ^0.6.8;
 
 interface IFlusher {
-  function init(address, address) external;
+  function setBasic(address, address) external;
 }
 
 contract Deployer {
@@ -19,7 +19,7 @@ contract Deployer {
     * @param logic flusher contract address
     * @param token token address
   */
-  function deploy(address owner, address logic, address token) public returns (address proxy) {
+  function deployLogic(address owner, address logic, address token) public returns (address proxy) {
     bytes32 salt = keccak256(abi.encodePacked(owner));
     bytes20 targetBytes = bytes20(logic);
     // solium-disable-next-line security/no-inline-assembly
@@ -36,7 +36,7 @@ contract Deployer {
         )
         proxy := create2(0, clone, 0x37, salt)
     }
-    IFlusher(proxy).init(owner, token);
+    IFlusher(proxy).setBasic(owner, token);
 
     emit LogNewFlusher(owner, proxy, logic, token);
   }

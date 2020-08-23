@@ -11,6 +11,7 @@ interface YieldPool {
 
 interface RegistryInterface {
   function signer(address) external view returns (bool);
+  function chief(address) external view returns (bool);
   function poolToken(address) external view returns (address);
 }
 
@@ -18,12 +19,12 @@ contract Flusher {
   using SafeERC20 for IERC20; 
 
   address payable public owner;
-  RegistryInterface public constant registry = RegistryInterface(address(0));
+  RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO
   bool public shield;
   uint256 public shieldTime;
 
   modifier isSigner {
-    require(registry.signer(msg.sender), "Not-signer");
+    require(registry.signer(msg.sender), "not-signer");
     _;
   }
 
@@ -93,32 +94,36 @@ contract Flusher {
       IERC20 tokenContract = IERC20(token);
       uint amt = tokenContract.balanceOf(address(this));
       tokenContract.safeTransfer(owner, amt);
-      emit LogWithdraw(msg.sender, token, poolToken, amt);
+      emit LogWithdraw(msg.sender, token, poolToken, amt); // TODO: why this event is not above statement when "if" is true
     }
   }
 
-  function withdrawToOwner(address token, address _user) external isSigner returns (uint) {
+  /**
+   * @dev withdraw to owner (rare case, used as backdoor)
+   */
+  function withdrawToOwner(address token) external isSigner returns (uint) {
     require(address(token) != address(0), "invalid-token");
     
     uint amt;
     if (address(token) == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
-        amt = address(this).balance;
-        payable(owner).transfer(amt);
-      } else {
-          IERC20 tokenContract = IERC20(token);
-          amt = tokenContract.balanceOf(address(this));
-          tokenContract.safeTransfer(address(owner), amt);
-      }
-      emit LogWithdrawToOwner(msg.sender, token, owner, amt);
+      amt = address(this).balance;
+      payable(owner).transfer(amt);
+    } else {
+      IERC20 tokenContract = IERC20(token);
+      amt = tokenContract.balanceOf(address(this));
+      tokenContract.safeTransfer(address(owner), amt);
+    }
+    emit LogWithdrawToOwner(msg.sender, token, owner, amt);
   }
 
-  function init(address newOwner, address token) external {
+  function setBasic(address newOwner, address token) external {
     owner = payable(newOwner);
     deposit(token);
     emit LogInit(newOwner);
   }
 
-  function switchShield() external isSigner {
+  function switchShield() external {
+    require(registry.chief(msg.sender), "not-chief");
     shield = !shield;
     if (!shield) {
       shieldTime = now + 90 days;
@@ -130,14 +135,12 @@ contract Flusher {
 
   /**
    * @dev backdoor function
-   * @param _target address of the target
-   * @param _data calldata for the target address
    */
   function spell(address _target, bytes calldata _data) external {
-    require(!shield, "shield-switch-false-yet");
-    require(shieldTime != 0 && shieldTime <= now, "not-vaild-shield-time");
+    require(!shield, "shield-access-denied");
+    require(shieldTime != 0 && shieldTime <= now, "less-than-ninty-days");
     require(_target != address(0), "target-invalid");
-    require(_data.length > 0, "data-invalid");
+    require(_data.length > 0, "data-invalid"); // TODO: Is the data array?
     bytes memory _callData = _data;
     address _owner = owner;
     assembly {
@@ -150,7 +153,7 @@ contract Flusher {
         revert(0x00, size)
       }
     }
-    require(_owner == owner, "cant-change-owner");
+    require(_owner == owner, "owner-change-denied");
     // TODO: emit event so we can keep a track of this contract on backend of any other suggestions?
   }
 
