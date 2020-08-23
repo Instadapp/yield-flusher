@@ -85,7 +85,6 @@ contract Flusher {
     }
   }
 
-  // TODO: the token is underlying token but amount is used as of pool token?
   function withdraw(address token, uint amount) external isSigner returns (uint _amount) {
     require(address(token) != address(0), "invalid-token");
     address poolToken = registry.poolToken(token);
