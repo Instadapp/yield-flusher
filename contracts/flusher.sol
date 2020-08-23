@@ -35,7 +35,7 @@ contract Flusher {
   }
 
   event LogInit(address indexed owner);
-  event LogSwitch(bool indexed boooool);
+  event LogSwitch(bool indexed shieldState);
 
   event LogDeposit(
     address indexed caller,
