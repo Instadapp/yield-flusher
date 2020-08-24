@@ -10,8 +10,10 @@ interface IndexInterface {
 contract Registry {
 
   event LogAddChief(address indexed chief);
+  event LogAddPool(address indexed token, address indexed pool);
   event LogAddSigner(address indexed signer);
   event LogRemoveChief(address indexed chief);
+  event LogRemovePool(address indexed token, address indexed pool);
   event LogRemoveSigner(address indexed signer);
 
   IndexInterface public instaIndex;
@@ -56,11 +58,35 @@ contract Registry {
       emit LogRemoveChief(_chief);
   }
 
-    /**
+  /**
+    * @dev Add New Pool
+    * @param token ERC20 token address
+    * @param pool pool address
+  */
+  function addPool(address token, address pool) external isMaster {
+    require(token != address(0) && pool != address(0), "address-not-valid");
+    require(poolToken[token] == address(0), "pool-added-already");
+    poolToken[token] = pool;
+    emit LogAddPool(token, pool);
+  }
+
+  /**
+    * @dev Remove Pool
+    * @param token ERC20 token address
+  */
+  function removePool(address token) external isMaster {
+    require(token != address(0), "address-not-valid");
+    require(poolToken[token] != address(0), "pool-not-found");
+    address poolAddr = poolToken[token];
+    delete poolToken[token];
+    emit LogRemovePool(token, poolAddr);
+  }
+
+  /**
     * @dev Enable New Signer.
     * @param _signer Address of the new signer.
   */
-  function enableSigner(address _signer) external isMaster {
+  function enableSigner(address _signer) external isController {
       require(_signer != address(0), "address-not-valid");
       require(!signer[_signer], "signer-already-enabled");
       signer[_signer] = true;
@@ -71,10 +97,11 @@ contract Registry {
     * @dev Disable Signer.
     * @param _signer Address of the existing signer.
   */
-  function disableSigneraddress _signer) external isMaster {
+  function disableSigner(address _signer) external isController {
       require(_signer != address(0), "address-not-valid");
       require(signer[_signer], "signer-already-disabled");
       delete signer[_signer];
       emit LogRemoveSigner(_signer);
   }
+
 }
