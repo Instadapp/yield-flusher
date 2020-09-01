@@ -5,12 +5,10 @@ pragma experimental ABIEncoderV2;
 
 interface RegistryInterface {
   function signer(address) external view returns (bool);
-  function chief(address) external view returns (bool);
   function isConnector(address[] calldata) external view returns (bool);
 }
 
 contract Flusher {
-  event LogInit(address indexed owner);
   event LogCast(address indexed origin, address indexed sender, uint value);
 
   address payable public owner;
@@ -19,7 +17,7 @@ contract Flusher {
   RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO - Change while deploying.
 
   modifier isSigner {
-    require(registry.signer(msg.sender) || registry.chief(msg.sender), "not-signer");
+    require(registry.signer(msg.sender), "not-signer");
     _;
   }
 

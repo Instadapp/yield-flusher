@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 
+// QUES:
+// could we just have switch<name> for instead of all the enable/disable functions? (like switchConnector)?
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -13,19 +16,15 @@ contract Registry {
   event LogAddSigner(address indexed signer);
   event LogRemoveChief(address indexed chief);
   event LogRemoveSigner(address indexed signer);
-
   event LogConnectorEnable(address indexed connector);
   event LogConnectorDisable(address indexed connector);
 
   mapping(address => bool) public connectors;
-  address[] public connectorArray;
-  uint public connectorCount;
 
   IndexInterface public instaIndex;
 
   mapping (address => bool) public chief;
   mapping (address => bool) public signer;
-  mapping (address => address) public poolToken;
 
   modifier isMaster() {
     require(msg.sender == instaIndex.master(), "not-master");
@@ -67,25 +66,21 @@ contract Registry {
     * @dev Enable Connector.
     * @param _connector Connector Address.
   */
-  function enable(address _connector) external isController {
+  function enableConnector(address _connector) external isController {
     require(!connectors[_connector], "already-enabled");
     require(_connector != address(0), "Not-valid-connector");
-    connectorArray.push(_connector);
     connectors[_connector] = true;
-    connectorCount++;
     emit LogConnectorEnable(_connector);
   }
   /**
     * @dev Disable Connector.
     * @param _connector Connector Address.
   */
-  function disable(address _connector) external isController {
+  function disableConnector(address _connector) external isController {
     require(connectors[_connector], "already-disabled");
     delete connectors[_connector];
-    connectorCount--;
     emit LogConnectorDisable(_connector);
   }
-
 
   /**
     * @dev Enable New Signer.
@@ -123,10 +118,4 @@ contract Registry {
     }
   }
 
-  /**
-    * @dev get Connector's Array length.
-  */
-  function connectorLength() external view returns (uint) {
-    return connectorArray.length;
-  }
 }
