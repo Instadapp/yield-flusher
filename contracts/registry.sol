@@ -10,11 +10,16 @@ interface IndexInterface {
 contract Registry {
 
   event LogAddChief(address indexed chief);
-  event LogAddPool(address indexed token, address indexed pool);
   event LogAddSigner(address indexed signer);
   event LogRemoveChief(address indexed chief);
-  event LogRemovePool(address indexed token, address indexed pool);
   event LogRemoveSigner(address indexed signer);
+
+  event LogConnectorEnable(address indexed connector);
+  event LogConnectorDisable(address indexed connector);
+
+  mapping(address => bool) public connectors;
+  address[] public connectorArray;
+  uint public connectorCount;
 
   IndexInterface public instaIndex;
 
@@ -41,10 +46,10 @@ contract Registry {
     * @param _chief Address of the new chief.
   */
   function enableChief(address _chief) external isMaster {
-      require(_chief != address(0), "address-not-valid");
-      require(!chief[_chief], "chief-already-enabled");
-      chief[_chief] = true;
-      emit LogAddChief(_chief);
+    require(_chief != address(0), "address-not-valid");
+    require(!chief[_chief], "chief-already-enabled");
+    chief[_chief] = true;
+    emit LogAddChief(_chief);
   }
 
   /**
@@ -52,45 +57,45 @@ contract Registry {
     * @param _chief Address of the existing chief.
   */
   function disableChief(address _chief) external isMaster {
-      require(_chief != address(0), "address-not-valid");
-      require(chief[_chief], "chief-already-disabled");
-      delete chief[_chief];
-      emit LogRemoveChief(_chief);
+    require(_chief != address(0), "address-not-valid");
+    require(chief[_chief], "chief-already-disabled");
+    delete chief[_chief];
+    emit LogRemoveChief(_chief);
   }
 
   /**
-    * @dev Add New Pool
-    * @param token ERC20 token address
-    * @param pool pool address
+    * @dev Enable Connector.
+    * @param _connector Connector Address.
   */
-  function addPool(address token, address pool) external isMaster {
-    require(token != address(0) && pool != address(0), "address-not-valid");
-    require(poolToken[token] == address(0), "pool-added-already");
-    poolToken[token] = pool;
-    emit LogAddPool(token, pool);
+  function enable(address _connector) external isController {
+    require(!connectors[_connector], "already-enabled");
+    require(_connector != address(0), "Not-valid-connector");
+    connectorArray.push(_connector);
+    connectors[_connector] = true;
+    connectorCount++;
+    emit LogConnectorEnable(_connector);
+  }
+  /**
+    * @dev Disable Connector.
+    * @param _connector Connector Address.
+  */
+  function disable(address _connector) external isController {
+    require(connectors[_connector], "already-disabled");
+    delete connectors[_connector];
+    connectorCount--;
+    emit LogConnectorDisable(_connector);
   }
 
-  /**
-    * @dev Remove Pool
-    * @param token ERC20 token address
-  */
-  function removePool(address token) external isMaster {
-    require(token != address(0), "address-not-valid");
-    require(poolToken[token] != address(0), "pool-not-found");
-    address poolAddr = poolToken[token];
-    delete poolToken[token];
-    emit LogRemovePool(token, poolAddr);
-  }
 
   /**
     * @dev Enable New Signer.
     * @param _signer Address of the new signer.
   */
   function enableSigner(address _signer) external isController {
-      require(_signer != address(0), "address-not-valid");
-      require(!signer[_signer], "signer-already-enabled");
-      signer[_signer] = true;
-      emit LogAddSigner(_signer);
+    require(_signer != address(0), "address-not-valid");
+    require(!signer[_signer], "signer-already-enabled");
+    signer[_signer] = true;
+    emit LogAddSigner(_signer);
   }
 
   /**
@@ -98,10 +103,30 @@ contract Registry {
     * @param _signer Address of the existing signer.
   */
   function disableSigner(address _signer) external isController {
-      require(_signer != address(0), "address-not-valid");
-      require(signer[_signer], "signer-already-disabled");
-      delete signer[_signer];
-      emit LogRemoveSigner(_signer);
+    require(_signer != address(0), "address-not-valid");
+    require(signer[_signer], "signer-already-disabled");
+    delete signer[_signer];
+    emit LogRemoveSigner(_signer);
   }
 
+  /**
+    * @dev Check if Connector addresses are enabled.
+    * @param _connectors Array of Connector Addresses.
+  */
+  function isConnector(address[] calldata _connectors) external view returns (bool isOk) {
+    isOk = true;
+    for (uint i = 0; i < _connectors.length; i++) {
+      if (!connectors[_connectors[i]]) {
+        isOk = false;
+        break;
+      }
+    }
+  }
+
+  /**
+    * @dev get Connector's Array length.
+  */
+  function connectorLength() external view returns (uint) {
+    return connectorArray.length;
+  }
 }
