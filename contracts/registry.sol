@@ -13,8 +13,8 @@ interface IndexInterface {
 contract Registry {
 
   event LogAddChief(address indexed chief);
-  event LogAddSigner(address indexed signer);
   event LogRemoveChief(address indexed chief);
+  event LogAddSigner(address indexed signer);
   event LogRemoveSigner(address indexed signer);
   event LogConnectorEnable(address indexed connector);
   event LogConnectorDisable(address indexed connector);
@@ -68,7 +68,7 @@ contract Registry {
   */
   function enableConnector(address _connector) external isController {
     require(!connectors[_connector], "already-enabled");
-    require(_connector != address(0), "Not-valid-connector");
+    require(_connector != address(0), "invalid-connector");
     connectors[_connector] = true;
     emit LogConnectorEnable(_connector);
   }

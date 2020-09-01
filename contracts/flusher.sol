@@ -19,7 +19,6 @@ contract Flusher {
       let succeeded := delegatecall(gas(), _target, add(_data, 0x20), mload(_data), 0, 0)
       switch iszero(succeeded)
         case 1 {
-            // throw if delegatecall failed
             let size := returndatasize()
             returndatacopy(0x00, 0x00, size)
             revert(0x00, size)
