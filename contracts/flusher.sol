@@ -13,21 +13,10 @@ contract Flusher {
 
   RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO - Change while deploying.
 
-  modifier isSigner {
-    require(registry.signer(msg.sender), "not-signer");
-    _;
-  }
-
-  /**
-    * @dev Delegate the calls to Connector And this function is ran by cast().
-    * @param _target Target to of Connector.
-    * @param _data CallData of function in Connector.
-  */
   function spell(address _target, bytes memory _data) internal {
     require(_target != address(0), "target-invalid");
     assembly {
       let succeeded := delegatecall(gas(), _target, add(_data, 0x20), mload(_data), 0, 0)
-
       switch iszero(succeeded)
         case 1 {
             // throw if delegatecall failed
@@ -38,13 +27,9 @@ contract Flusher {
     }
   }
 
-  /**
-    * @dev Array of spell()
-    * @param _targets Array of Target(s) to of Connector.
-    * @param _datas Array of Calldata(s) of function.
-  */
-  function cast(address[] calldata _targets, bytes[] calldata _datas) external payable isSigner {
-    require(_targets.length == _datas.length , "array-length-invalid");
+  function cast(address[] calldata _targets, bytes[] calldata _datas) external payable {
+    require(registry.signer(msg.sender), "not-signer");
+    require(_targets.length == _datas.length , "invalid-array-length");
     require(registry.isConnector(_targets), "not-connector");
     for (uint i = 0; i < _targets.length; i++) {
         spell(_targets[i], _datas[i]);
