@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -12,6 +14,7 @@ interface RegistryInterface {
 
 contract Flusher {
   event LogInit(address indexed owner);
+  event LogCast(address indexed origin, address indexed sender, uint value);
 
   address payable public owner;
   uint internal gasLeft;
@@ -35,11 +38,7 @@ contract Flusher {
     emit LogInit(newOwner);
   }
 
-  event LogCast(address indexed origin, address indexed sender, uint value);
-
-  receive() external payable {}
-
-    /**
+  /**
     * @dev Delegate the calls to Connector And this function is ran by cast().
     * @param _target Target to of Connector.
     * @param _data CallData of function in Connector.
@@ -68,13 +67,13 @@ contract Flusher {
   function cast(
       address[] calldata _targets,
       bytes[] calldata _datas,
-      bool calGas,
+      bool takeGas,
       address _origin
   )
   external
   payable
   isSigner
-  calculateGas(calGas)
+  calculateGas(takeGas)
   {
       require(_targets.length == _datas.length , "array-length-invalid");
       require(registry.isConnector(_targets), "not-connector");
@@ -83,4 +82,6 @@ contract Flusher {
       }
       emit LogCast(_origin, msg.sender, msg.value);
   }
+
+  receive() external payable {}
 }
