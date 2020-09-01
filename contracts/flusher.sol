@@ -9,28 +9,13 @@ interface RegistryInterface {
 }
 
 contract Flusher {
-  event LogCast(address indexed origin, address indexed sender, uint value);
-
-  address payable public owner;
-  uint internal gasLeft;
+  event LogCast(address indexed sender, uint value);
 
   RegistryInterface public constant registry = RegistryInterface(address(0)); // TODO - Change while deploying.
 
   modifier isSigner {
     require(registry.signer(msg.sender), "not-signer");
     _;
-  }
-
-  modifier calculateGas(bool isGas) {
-    gasLeft = gasleft();
-    _;
-    gasLeft = 0;
-  }
-
-  function setBasic(address newOwner) external {
-    require(owner == address(0), "already-an-owner");
-    owner = payable(newOwner);
-    emit LogInit(newOwner);
   }
 
   /**
@@ -54,28 +39,17 @@ contract Flusher {
   }
 
   /**
-    * @dev This is the main function, Where all the different functions are called
-    * from Smart Account.
+    * @dev Array of spell()
     * @param _targets Array of Target(s) to of Connector.
     * @param _datas Array of Calldata(s) of function.
   */
-  function cast(
-      address[] calldata _targets,
-      bytes[] calldata _datas,
-      bool takeGas,
-      address _origin
-  )
-  external
-  payable
-  isSigner
-  calculateGas(takeGas)
-  {
-      require(_targets.length == _datas.length , "array-length-invalid");
-      require(registry.isConnector(_targets), "not-connector");
-      for (uint i = 0; i < _targets.length; i++) {
-          spell(_targets[i], _datas[i]);
-      }
-      emit LogCast(_origin, msg.sender, msg.value);
+  function cast(address[] calldata _targets, bytes[] calldata _datas) external payable isSigner {
+    require(_targets.length == _datas.length , "array-length-invalid");
+    require(registry.isConnector(_targets), "not-connector");
+    for (uint i = 0; i < _targets.length; i++) {
+        spell(_targets[i], _datas[i]);
+    }
+    emit LogCast(msg.sender, msg.value);
   }
 
   receive() external payable {}
