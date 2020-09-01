@@ -17,11 +17,10 @@ contract Registry {
   event LogConnectorDisable(address indexed connector);
 
   mapping(address => bool) public connectors;
-
-  IndexInterface public instaIndex;
-
   mapping (address => bool) public chief;
   mapping (address => bool) public signer;
+
+  IndexInterface public instaIndex = IndexInterface(_index);
 
   modifier isMaster() {
     require(msg.sender == instaIndex.master(), "not-master");
@@ -31,10 +30,6 @@ contract Registry {
   modifier isController() {
     require(chief[msg.sender] || msg.sender == instaIndex.master(), "not-chief");
     _;
-  }
-
-  constructor(address _index) public {
-    instaIndex = IndexInterface(_index);
   }
 
   function enableChief(address _chief) external isMaster {

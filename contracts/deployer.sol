@@ -1,19 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.8;
 
-interface IProxy {
-  function setBasic(address) external;
-}
-
 contract Deployer {
 
   event LogNewProxy(address indexed owner, address indexed logic);
 
-  /**
-    * @dev deploy create2 + minimal proxy
-    * @param owner owner address used for salt
-    * @param logic flusher contract address
-  */
+  // deploy create2 + minimal proxy
   function deployLogic(address owner, address logic) public returns (address proxy) {
     bytes32 salt = keccak256(abi.encodePacked(owner));
     bytes20 targetBytes = bytes20(logic);
@@ -31,15 +23,10 @@ contract Deployer {
       )
       proxy := create2(0, clone, 0x37, salt)
     }
-    IProxy(proxy).setBasic(owner);
     emit LogNewProxy(owner, logic);
   }
 
-  /**
-    * @dev compute create2 + minimal proxy address
-    * @param owner owner address used for salt
-    * @param logic flusher contract address
-  */
+  // compute create2 + minimal proxy address
   function getAddress(address owner, address logic) public view returns (address) {
     bytes32 codeHash = keccak256(getCreationCode(logic));
     bytes32 salt = keccak256(abi.encodePacked(owner));
@@ -53,7 +40,7 @@ contract Deployer {
     );
     return address(bytes20(rawAddress << 96));
   }
-  
+
   function getCreationCode(address logic) public pure returns (bytes memory) {
     bytes20 a = bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73);
     bytes20 b = bytes20(logic);
