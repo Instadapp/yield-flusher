@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// QUES:
-// could we just have switch<name> for instead of all the enable/disable functions? (like switchConnector)?
-
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
