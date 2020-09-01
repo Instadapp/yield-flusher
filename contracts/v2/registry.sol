@@ -13,8 +13,9 @@ contract Registry {
   event LogAddSigner(address indexed signer);
   event LogRemoveChief(address indexed chief);
   event LogRemoveSigner(address indexed signer);
-  event LogEnable(address indexed connector);
-  event LogDisable(address indexed connector);
+
+  event LogConnectorEnable(address indexed connector);
+  event LogConnectorDisable(address indexed connector);
 
   mapping(address => bool) public connectors;
   address[] public connectorArray;
@@ -45,10 +46,10 @@ contract Registry {
     * @param _chief Address of the new chief.
   */
   function enableChief(address _chief) external isMaster {
-      require(_chief != address(0), "address-not-valid");
-      require(!chief[_chief], "chief-already-enabled");
-      chief[_chief] = true;
-      emit LogAddChief(_chief);
+    require(_chief != address(0), "address-not-valid");
+    require(!chief[_chief], "chief-already-enabled");
+    chief[_chief] = true;
+    emit LogAddChief(_chief);
   }
 
   /**
@@ -56,10 +57,10 @@ contract Registry {
     * @param _chief Address of the existing chief.
   */
   function disableChief(address _chief) external isMaster {
-      require(_chief != address(0), "address-not-valid");
-      require(chief[_chief], "chief-already-disabled");
-      delete chief[_chief];
-      emit LogRemoveChief(_chief);
+    require(_chief != address(0), "address-not-valid");
+    require(chief[_chief], "chief-already-disabled");
+    delete chief[_chief];
+    emit LogRemoveChief(_chief);
   }
 
   /**
@@ -67,22 +68,22 @@ contract Registry {
     * @param _connector Connector Address.
   */
   function enable(address _connector) external isController {
-      require(!connectors[_connector], "already-enabled");
-      require(_connector != address(0), "Not-valid-connector");
-      connectorArray.push(_connector);
-      connectors[_connector] = true;
-      connectorCount++;
-      emit LogEnable(_connector);
+    require(!connectors[_connector], "already-enabled");
+    require(_connector != address(0), "Not-valid-connector");
+    connectorArray.push(_connector);
+    connectors[_connector] = true;
+    connectorCount++;
+    emit LogConnectorEnable(_connector);
   }
   /**
     * @dev Disable Connector.
     * @param _connector Connector Address.
   */
   function disable(address _connector) external isController {
-      require(connectors[_connector], "already-disabled");
-      delete connectors[_connector];
-      connectorCount--;
-      emit LogDisable(_connector);
+    require(connectors[_connector], "already-disabled");
+    delete connectors[_connector];
+    connectorCount--;
+    emit LogConnectorDisable(_connector);
   }
 
 
@@ -91,10 +92,10 @@ contract Registry {
     * @param _signer Address of the new signer.
   */
   function enableSigner(address _signer) external isController {
-      require(_signer != address(0), "address-not-valid");
-      require(!signer[_signer], "signer-already-enabled");
-      signer[_signer] = true;
-      emit LogAddSigner(_signer);
+    require(_signer != address(0), "address-not-valid");
+    require(!signer[_signer], "signer-already-enabled");
+    signer[_signer] = true;
+    emit LogAddSigner(_signer);
   }
 
   /**
@@ -102,10 +103,10 @@ contract Registry {
     * @param _signer Address of the existing signer.
   */
   function disableSigner(address _signer) external isController {
-      require(_signer != address(0), "address-not-valid");
-      require(signer[_signer], "signer-already-disabled");
-      delete signer[_signer];
-      emit LogRemoveSigner(_signer);
+    require(_signer != address(0), "address-not-valid");
+    require(signer[_signer], "signer-already-disabled");
+    delete signer[_signer];
+    emit LogRemoveSigner(_signer);
   }
 
   /**
@@ -113,19 +114,19 @@ contract Registry {
     * @param _connectors Array of Connector Addresses.
   */
   function isConnector(address[] calldata _connectors) external view returns (bool isOk) {
-      isOk = true;
-      for (uint i = 0; i < _connectors.length; i++) {
-          if (!connectors[_connectors[i]]) {
-              isOk = false;
-              break;
-          }
+    isOk = true;
+    for (uint i = 0; i < _connectors.length; i++) {
+      if (!connectors[_connectors[i]]) {
+        isOk = false;
+        break;
       }
+    }
   }
 
   /**
     * @dev get Connector's Array length.
   */
   function connectorLength() external view returns (uint) {
-      return connectorArray.length;
+    return connectorArray.length;
   }
 }

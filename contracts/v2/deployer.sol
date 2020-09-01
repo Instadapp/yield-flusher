@@ -19,17 +19,17 @@ contract Deployer {
     bytes20 targetBytes = bytes20(logic);
     // solium-disable-next-line security/no-inline-assembly
     assembly {
-        let clone := mload(0x40)
-        mstore(
-            clone,
-            0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
-        )
-        mstore(add(clone, 0x14), targetBytes)
-        mstore(
-            add(clone, 0x28),
-            0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
-        )
-        proxy := create2(0, clone, 0x37, salt)
+      let clone := mload(0x40)
+      mstore(
+        clone,
+        0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
+      )
+      mstore(add(clone, 0x14), targetBytes)
+      mstore(
+        add(clone, 0x28),
+        0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
+      )
+      proxy := create2(0, clone, 0x37, salt)
     }
     IProxy(proxy).setBasic(owner);
     emit LogNewProxy(owner, logic);
@@ -49,8 +49,9 @@ contract Deployer {
         address(this),
         salt,
         codeHash
-      ));
-      return address(bytes20(rawAddress << 96));
+      )
+    );
+    return address(bytes20(rawAddress << 96));
   }
   
   function getCreationCode(address logic) public pure returns (bytes memory) {
