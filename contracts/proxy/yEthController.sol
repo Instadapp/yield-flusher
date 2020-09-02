@@ -5,7 +5,7 @@ interface IndexInterface {
     function master() external view returns (address);
 }
 
-contract Helpers {
+contract Controller {
 
     event LogChangeFee(uint256 _fee);
     event LogChangeMaxGasFee(uint256 _fee);
@@ -39,7 +39,7 @@ contract Helpers {
     }
 
     function changeMaxGasFee(uint256 _maxGasFee) external isChief {
-        require(_maxGasFee <= 2 * 10 ** 17, "gas fee more than 0.2 ETH");
+        require(_maxGasFee <= 5 * 10 ** 17, "gas fee more than 0.5 ETH");
         maxGasFee = uint64(_maxGasFee);
         emit LogChangeMaxGasFee(_maxGasFee);
     }
@@ -55,20 +55,22 @@ contract Helpers {
 
     function depositAmt(uint amt) external {
         balanceOf[msg.sender] += amt;
+        // TODO - event
     }
 
     function withdrawAmt(uint amt) external {
         uint _depositedAmt = balanceOf[msg.sender];
         balanceOf[msg.sender] -= amt > _depositedAmt ? _depositedAmt : amt;
+        // TODO - event
     }
 }
 
-contract InstaPoolFee is Helpers {
+contract yEthController is Controller {
     constructor () public {
         fee = 1 * 10 ** 17;  // 10%
-        maxGasFee = 2 * 10 ** 17;  // max 2 ETH
-        feeCollector = IndexInterface(instaIndex).master();
-        gasFeeCollector = IndexInterface(instaIndex).master();
+        maxGasFee = 2 * 10 ** 17;  // max 0.2 ETH
+        feeCollector = IndexInterface(instaIndex).master(); // TODO - Change
+        gasFeeCollector = IndexInterface(instaIndex).master(); // TODO - Change
 
     }
 }
