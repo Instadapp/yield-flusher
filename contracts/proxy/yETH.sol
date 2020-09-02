@@ -80,7 +80,7 @@ contract yEthHelpers is Helpers {
         yEthInterface yETH,
         ControllerInterface controller,
         uint withdrawAmt
-    ) internal returns (uint withdrewAmt, uint amt, uint feeAmt) {
+    ) internal returns (uint withdrewAmt, uint nonProfitAmt, uint feeAmt) {
         uint sharePrice = yETH.getPricePerFullShare();
         uint totalShares = yETH.balanceOf(address(this));
         uint totalAmt = wmul(sharePrice, totalShares);
@@ -90,18 +90,18 @@ contract yEthHelpers is Helpers {
         yETH.withdrawETH(shareAmt);
         uint finalBal = address(this).balance;
         withdrewAmt = sub(finalBal, initalBal);
-        (amt, feeAmt) = calculateFee(controller, totalAmt, withdrewAmt);
+        (nonProfitAmt, feeAmt) = calculateFee(controller, totalAmt, withdrewAmt);
     }
 
     function calculateFee(
         ControllerInterface controller,
         uint totalAmt,
         uint withdrewAmt
-    ) internal view returns (uint amt, uint feeAmt) {
+    ) internal view returns (uint nonProfitAmt, uint feeAmt) {
         uint depositAmt = controller.balanceOf(address(this));
         uint ratio = wdiv(withdrewAmt, totalAmt);
-        amt = wmul(depositAmt, ratio);
-        uint profit = sub(withdrewAmt, amt);
+        nonProfitAmt = wmul(depositAmt, ratio);
+        uint profit = sub(withdrewAmt, nonProfitAmt);
         feeAmt = wmul(profit, controller.fee());
     }
 }
@@ -127,12 +127,12 @@ contract BasicResolver is yEthHelpers {
         ControllerInterface controller = ControllerInterface(getControllerAddr());
         yEthInterface yETH = yEthInterface(getYEthAddress());
         require(gasFeeAmt <= controller.maxGasFeeAmount(), "max-fee-amount");
-        (uint withdrewAmt, uint amt, uint feeAmt) = _withdrawAndCalculateFee(
+        (uint withdrewAmt, uint nonProfitAmt, uint feeAmt) = _withdrawAndCalculateFee(
             yETH,
             controller,
             amount
         );
-        controller.withdraw(amt);
+        controller.withdraw(nonProfitAmt);
         payable(controller.feeCollector()).transfer(feeAmt);
         payable(controller.gasFeeCollector()).transfer(gasFeeAmt);
         emit LogWithdraw(withdrewAmt, gasFeeAmt, feeAmt);
