@@ -80,28 +80,31 @@ contract yEthHelpers is Helpers {
         yEthInterface yETH,
         ControllerInterface controller,
         uint withdrawAmt
-    ) internal returns (uint withdrewAmt, uint amtWithoutProfit, uint feeAmt) {
+    ) internal returns (uint withdrewAmt, uint withdrawalFee, uint amtWithoutProfit, uint feeAmt) {
         uint sharePrice = yETH.getPricePerFullShare();
         uint totalShares = yETH.balanceOf(address(this));
-        uint totalAmt = wmul(sharePrice, totalShares);
-        uint shareAmt = withdrawAmt >= totalAmt ?  totalShares : wdiv(withdrawAmt, sharePrice);
-
+        uint shareAmt = wdiv(withdrawAmt, sharePrice); 
+        shareAmt = shareAmt >= totalShares ?  totalShares : shareAmt;
         uint initalBal = address(this).balance;
         yETH.withdrawETH(shareAmt);
         uint finalBal = address(this).balance;
         withdrewAmt = sub(finalBal, initalBal);
-        (amtWithoutProfit, feeAmt) = calculateFee(controller, totalAmt, withdrewAmt);
+        (withdrawalFee, amtWithoutProfit, feeAmt) = calculateFee(controller, totalShares, shareAmt, sharePrice);
+        withdrawalFee = sub(withdrawalFee, withdrewAmt);
+        withdrawalFee = withdrawalFee > 10 ? withdrawalFee : 0;
     }
 
     function calculateFee(
         ControllerInterface controller,
-        uint totalAmt,
-        uint withdrewAmt
-    ) internal view returns (uint amtWithoutProfit, uint feeAmt) {
+        uint totalShare,
+        uint burnShare,
+        uint sharePrice
+    ) internal view returns (uint _withdrawAmt, uint amtWithoutProfit, uint feeAmt) {
+        _withdrawAmt = wmul(burnShare, sharePrice);
         uint depositAmt = controller.balanceOf(address(this));
-        uint ratio = wdiv(withdrewAmt, totalAmt);
+        uint ratio = wdiv(burnShare, totalShare);
         amtWithoutProfit = wmul(depositAmt, ratio);
-        uint profit = sub(withdrewAmt, amtWithoutProfit);
+        uint profit = sub(_withdrawAmt, amtWithoutProfit);
         feeAmt = wmul(profit, controller.fee());
     }
 }
@@ -109,7 +112,7 @@ contract yEthHelpers is Helpers {
 
 contract BasicResolver is yEthHelpers {
     event LogDeposit(uint amount, uint gasFeeAmt);
-    event LogWithdraw(uint amount, uint gasFeeAmt, uint feeAmt);
+    event LogWithdraw(uint amount, uint withdrawalFee, uint gasFeeAmt, uint feeAmt);
 
     function deposit(uint amount, uint gasFeeAmt) external payable {
         ControllerInterface controller = ControllerInterface(getControllerAddr());
@@ -117,7 +120,9 @@ contract BasicResolver is yEthHelpers {
         yEthInterface yETH = yEthInterface(getYEthAddress());
         uint balAmt = sub(address(this).balance, gasFeeAmt);
         uint _amt = amount >= balAmt ? balAmt : amount;
+
         yETH.depositETH.value(_amt)();
+
         controller.deposit(_amt);
         payable(controller.gasFeeCollector()).transfer(gasFeeAmt);
         emit LogDeposit(_amt, gasFeeAmt);
@@ -127,7 +132,7 @@ contract BasicResolver is yEthHelpers {
         ControllerInterface controller = ControllerInterface(getControllerAddr());
         yEthInterface yETH = yEthInterface(getYEthAddress());
         require(gasFeeAmt <= controller.maxGasFeeAmount(), "max-fee-amount");
-        (uint withdrewAmt, uint amtWithoutProfit, uint feeAmt) = _withdrawAndCalculateFee(
+        (uint withdrewAmt, uint withdrawalFee, uint amtWithoutProfit, uint feeAmt) = _withdrawAndCalculateFee(
             yETH,
             controller,
             amount
@@ -135,7 +140,7 @@ contract BasicResolver is yEthHelpers {
         controller.withdraw(amtWithoutProfit);
         payable(controller.feeCollector()).transfer(feeAmt);
         payable(controller.gasFeeCollector()).transfer(gasFeeAmt);
-        emit LogWithdraw(withdrewAmt, gasFeeAmt, feeAmt);
+        emit LogWithdraw(withdrewAmt, withdrawalFee, gasFeeAmt, feeAmt);
     }
 
 }
