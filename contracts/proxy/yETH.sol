@@ -101,10 +101,10 @@ contract yEthHelpers is Helpers {
         uint sharePrice
     ) internal view returns (uint _withdrawAmt, uint amtWithoutProfit, uint feeAmt) {
         _withdrawAmt = wmul(burnShare, sharePrice);
-        uint depositAmt = controller.balanceOf(address(this));
         uint ratio = wdiv(burnShare, totalShare);
-        amtWithoutProfit = wmul(depositAmt, ratio);
-        uint profit = sub(_withdrawAmt, amtWithoutProfit);
+        uint depositAmt = controller.balanceOf(address(this));
+        amtWithoutProfit = burnShare >= totalShare - 1 ? depositAmt : wmul(depositAmt, ratio);
+        uint profit = amtWithoutProfit >= _withdrawAmt ? 0 : sub(_withdrawAmt, amtWithoutProfit);
         feeAmt = wmul(profit, controller.fee());
     }
 }
@@ -130,8 +130,8 @@ contract BasicResolver is yEthHelpers {
 
     function withdraw(uint amount, uint gasFeeAmt) external payable {
         ControllerInterface controller = ControllerInterface(getControllerAddr());
-        yEthInterface yETH = yEthInterface(getYEthAddress());
         require(gasFeeAmt <= controller.maxGasFeeAmount(), "max-fee-amount");
+        yEthInterface yETH = yEthInterface(getYEthAddress());
         (uint withdrewAmt, uint withdrawalFee, uint amtWithoutProfit, uint feeAmt) = _withdrawAndCalculateFee(
             yETH,
             controller,
