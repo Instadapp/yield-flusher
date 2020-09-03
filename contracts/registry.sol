@@ -20,7 +20,7 @@ contract Registry {
   mapping (address => bool) public chief;
   mapping (address => bool) public signer;
 
-  IndexInterface public instaIndex = IndexInterface(_index);
+  IndexInterface public instaIndex = IndexInterface(0x2971AdFa57b20E5a416aE5a708A8655A9c74f723);
 
   modifier isMaster() {
     require(msg.sender == instaIndex.master(), "not-master");
