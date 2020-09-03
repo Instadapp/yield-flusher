@@ -90,7 +90,7 @@ contract yEthHelpers is Helpers {
         uint finalBal = address(this).balance;
         withdrewAmt = sub(finalBal, initalBal);
         (withdrawalFee, amtWithoutProfit, feeAmt) = calculateFee(controller, totalShares, shareAmt, sharePrice);
-        withdrawalFee = sub(withdrawalFee, withdrewAmt);
+        withdrawalFee = withdrawalFee > withdrewAmt ? sub(withdrawalFee, withdrewAmt) : 0;
         withdrawalFee = withdrawalFee > 10 ? withdrawalFee : 0;
     }
 
